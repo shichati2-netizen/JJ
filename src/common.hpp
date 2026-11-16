@@ -120,13 +120,11 @@ inline bool sha1File(const std::wstring& path, std::wstring& hex) {
     if (file == INVALID_HANDLE_VALUE) goto cleanup;
     {
         std::vector<UCHAR> buffer(1024 * 1024);
-        DWORD read = 0;
-        while (ReadFile(file, buffer.data(), (DWORD)buffer.size(), &read, nullptr) && read) {
+        for (;;) {
+            DWORD read = 0;
+            if (!ReadFile(file, buffer.data(), (DWORD)buffer.size(), &read, nullptr)) goto cleanup;
+            if (read == 0) break;
             if (BCryptHashData(hash, buffer.data(), read, 0) < 0) goto cleanup;
-        }
-        if (GetLastError() != ERROR_HANDLE_EOF && read == 0 && GetLastError() != ERROR_SUCCESS) {
-            // ReadFile normally returns FALSE only on a real I/O failure.
-            if (GetLastError() != ERROR_HANDLE_EOF) goto cleanup;
         }
     }
     if (BCryptFinishHash(hash, digest.data(), (ULONG)digest.size(), 0) < 0) goto cleanup;
