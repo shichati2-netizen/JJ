@@ -1,0 +1,47 @@
+name: Build AE native tools
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC x64
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Compile standalone EXE files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          cl.exe /nologo /std:c++17 /utf-8 /O2 /EHsc /MT /DUNICODE /D_UNICODE src\auto_otzaria.cpp /Fe:dist\AE_Otzaria_Auto.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cl.exe /nologo /std:c++17 /utf-8 /O2 /EHsc /MT /DUNICODE /D_UNICODE src\manual_entry.cpp /Fe:dist\AE_Manual_Entry.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\*.exe -DestinationPath AE_Native_Tools_x64.zip -Force
+
+      - name: Upload EXE and ZIP artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AE-Native-Tools-Windows-x64
+          path: |
+            dist\*.exe
+            AE_Native_Tools_x64.zip
+          if-no-files-found: error
