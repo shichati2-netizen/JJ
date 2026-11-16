@@ -7,6 +7,8 @@ on:
       - "src/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
+  schedule:
+    - cron: "0 15 * * *"
 
 permissions:
   contents: read
